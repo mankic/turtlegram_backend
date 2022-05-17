@@ -44,7 +44,7 @@ def sign_up():
     pw_hash = hashlib.sha256(pw_receive.encode('utf-8')).hexdigest()    # 패스워드 해싱처리
 
     if db.users.find_one({'user_id':id_receive}):
-        return jsonify({'msg':'중복된 이메일 입니다.'}), 300
+        return jsonify({'msg':'중복된 이메일 입니다.'}), 401
 
     else:
         doc = {'user_id': id_receive, 'hashed_pw': pw_hash}
@@ -74,7 +74,7 @@ def sign_in():
 
     # 정보 없으면 바로 리턴
     if result is None:
-        return jsonify({'msg': '아이디나 비밀번호가 틀립니다.'}), 300
+        return jsonify({'msg': '아이디나 비밀번호가 틀립니다.'}), 401
 
     #정보있으면 payload에 아이디와 시간 저장
     payload = {
@@ -86,7 +86,7 @@ def sign_in():
     # 토큰 생성
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
     print(token)
-    return jsonify({'msg': '로그인 완료'})
+    return jsonify({'msg': '로그인 완료', 'token':token})   # token 반환!!!
  
     
 if __name__ == '__main__':  # 직접 부를때만 실행
