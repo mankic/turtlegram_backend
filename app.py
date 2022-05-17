@@ -35,17 +35,18 @@ def sign_up():
 
     signup_info = json.loads(request.data)     # json으로 꺼내와야 딕셔너리형태로 나온다.
 
-    id_receive = signup_info.get('id')
-    pw_receive = signup_info.get('password',None)
+    id_receive = signup_info.get('email')
+    pw_receive = signup_info.get('password')
 
     pw_hash = hashlib.sha256(pw_receive.encode('utf-8')).hexdigest()    # 패스워드 해싱처리
+
+
 
     doc = {'user_id': id_receive, 'hashed_pw': pw_hash}
 
     user = db.users.insert_one(doc)     # turtlegram DB의 users collection에 저장
-
- 
-    return jsonify({'status': 'success'})
+    
+    return jsonify({'result': 'success', 'msg': '회원가입성공'})
 
 
 if __name__ == '__main__':  # 직접 부를때만 실행
