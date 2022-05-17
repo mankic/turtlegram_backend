@@ -40,13 +40,15 @@ def sign_up():
 
     pw_hash = hashlib.sha256(pw_receive.encode('utf-8')).hexdigest()    # 패스워드 해싱처리
 
+    if db.users.find_one({'user_id':id_receive}):
+        return jsonify({'msg':'중복된 이메일 입니다.'}), 300
 
+    else:
+        doc = {'user_id': id_receive, 'hashed_pw': pw_hash}
 
-    doc = {'user_id': id_receive, 'hashed_pw': pw_hash}
-
-    user = db.users.insert_one(doc)     # turtlegram DB의 users collection에 저장
-    
-    return jsonify({'result': 'success', 'msg': '회원가입성공'})
+        user = db.users.insert_one(doc)     # turtlegram DB의 users collection에 저장
+        
+        return jsonify({'result': 'success', 'msg': '회원가입성공'})
 
 
 if __name__ == '__main__':  # 직접 부를때만 실행
