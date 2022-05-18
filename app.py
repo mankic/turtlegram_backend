@@ -87,6 +87,23 @@ def sign_in():
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
     print(token)
     return jsonify({'msg': '로그인 완료', 'token':token})   # token 반환!!!
+
+
+@app.route("/getuserinfo", methods=['GET'])
+def get_user_info():
+    # print(request.headers)
+    token = request.headers.get('Authorization')     # 로컬스토리지는 http 헤더로 들어가기때문.   
+    # print(token)
+
+    user = jwt.decode(token, SECRET_KEY, algorithms='HS256')
+    # print(user)
+
+    result = db.users.find_one({
+        '_id': ObjectId(user['id'])     # ObjectId 붙여야 DB에서 찾을수있다.
+    })
+    # print(result)
+
+    return jsonify({'msg':'success', 'email':result['user_id']})    # 아이디값 뽑아서 반환
  
     
 if __name__ == '__main__':  # 직접 부를때만 실행
