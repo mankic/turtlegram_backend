@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
+from functools import wraps
 import json
 from urllib import request
-from flask import Flask, jsonify, request, Response    # 클래스 가져오기
+from flask import Flask, jsonify, request, Response, abort    # 클래스 가져오기
 from flask_cors import CORS
 from pymongo import MongoClient
 import hashlib
@@ -16,8 +17,25 @@ db = client.turtlegram
 
 SECRET_KEY = 'turtle'
 
+
+def authorize(f):
+    @wraps(f)   # 한가지 함수를 여러가지 함수에 적용시킬때 나는 에러를 방지. import 해줘야함.
+    def decorated_function():
+        if not 'Authorization' in request.headers:   # 헤더에 Authorization 없으면 abort
+            abort(401)
+        token = request.headers['Authorization']    # 헤더에 Authorization token에 저장
+        try:
+            user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])  # 토큰 디코딩
+        except:
+            abort(401) 
+        return f(user)  # user 값이 function 안에 들어가서 실행된다.
+
+    return decorated_function
+
 @app.route('/')     # 기본서버 127.0.0.1:5000 뒤에 붙는 주소를 적어준다.
-def hello_world():  # 위의 주소를 호출 시 보여 줄 것을 함수로 작성
+@authorize
+def hello_world(user):  # 위의 주소를 호출 시 보여 줄 것을 함수로 작성
+    print(user)
     return jsonify({'message': 'success'})
 
 # @app.route("/signup", methods=['POST'])
@@ -90,22 +108,57 @@ def sign_in():
 
 
 @app.route("/getuserinfo", methods=['GET'])
-def get_user_info():
-    # print(request.headers)
-    token = request.headers.get('Authorization')     # 로컬스토리지는 http 헤더로 들어가기때문.   
-    # print(token)
-
-    user = jwt.decode(token, SECRET_KEY, algorithms='HS256')
-    # print(user)
+@authorize  # 인증이 된 사람만.
+def get_user_info(user):    # authorize 유저 추가
 
     result = db.users.find_one({
         '_id': ObjectId(user['id'])     # ObjectId 붙여야 DB에서 찾을수있다.
     })
-    # print(result)
+    print(result)
+    return jsonify({'msg':'success', 'email':result['user_id']})    # 아이디값 뽑아서 반환  
 
-    return jsonify({'msg':'success', 'email':result['user_id']})    # 아이디값 뽑아서 반환
+# decorate 함수 쓰기 전 getuserinfo-------
+# @app.route("/getuserinfo", methods=['GET'])
+# def get_user_info():
+#     token = request.headers.get('Authorization')     # 로컬스토리지는 http 헤더로 들어가기때문.   
+
+#     if not token:
+#         return jsonify({"message":"no token"}), 402
+
+#     user = jwt.decode(token, SECRET_KEY, algorithms='HS256')
+
+#     result = db.users.find_one({
+#         '_id': ObjectId(user['id'])     # ObjectId 붙여야 DB에서 찾을수있다.
+#     })
+#     return jsonify({'msg':'success', 'email':result['user_id']})    # 아이디값 뽑아서 반환  
  
     
+@app.route('/article', methods=['POST'])
+@authorize  # 인증이 된 사람만.
+def post_article(user):     # authorize 유저 추가
+    data = json.loads(request.data)
+    print(data)
+
+    # user의 id값을 가져와서 옵젝화 시켜주고 그값을 db에서 찾아서 저장
+    db_user = db.users.find_one({'_id': ObjectId(user.get('id'))})
+
+    # 현재 시간
+    now = datetime.now().strftime("%H:%M:%S")
+    # 게시글달기에 필요한 데이터
+    doc = {
+        'title': data.get('title', None),   # 값이 없어도 None값으로 저장한다.
+        'content': data.get('content', None),
+        'user': user['id'],     # _id 값
+        'user_email': db_user['user_id'],
+        'time': now,
+    }
+    print(doc)
+
+    db.article.insert_one(doc)
+
+    return jsonify({'message': 'success'})
+
+
 if __name__ == '__main__':  # 직접 부를때만 실행
 
     # debug=True를 하면 고칠 때마다 자동으로 실행한다.
