@@ -35,7 +35,7 @@ def authorize(f):
 @app.route('/')     # 기본서버 127.0.0.1:5000 뒤에 붙는 주소를 적어준다.
 @authorize
 def hello_world(user):  # 위의 주소를 호출 시 보여 줄 것을 함수로 작성
-    print(user)
+    # print(user)
     return jsonify({'message': 'success'})
 
 # @app.route("/signup", methods=['POST'])
@@ -157,6 +157,19 @@ def post_article(user):     # authorize 유저 추가
     db.article.insert_one(doc)
 
     return jsonify({'message': 'success'})
+
+
+@app.route('/article', methods=['GET'])
+def get_article():
+    articles = list(db.article.find())  # 저장된 게시글들 리스트로 저장
+    print(articles)
+
+    # ObjectID 값을 string으로 전환
+    for article in articles:
+        article['_id'] = str(article['_id'])
+    
+    return jsonify({"message":"success", "articles":articles})
+
 
 
 if __name__ == '__main__':  # 직접 부를때만 실행
